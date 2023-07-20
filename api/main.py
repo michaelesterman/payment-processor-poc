@@ -6,10 +6,10 @@ from enum import Enum
 from fastapi import FastAPI, Depends, HTTPException, Header
 from pydantic import BaseModel, Field
 from kafka import KafkaProducer
-from typing import Dict, Any
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 class Payment(BaseModel):
     amount: float = Field(..., gt=0)
@@ -20,19 +20,34 @@ class Payment(BaseModel):
 
 
 class StatusEnum(str, Enum):
-    processing = "Processing"
-    success = "Success"
-    failure = "Failure"
+    processing = "processing"
+    success = "success"
+    failure = "failure"
 
 
 class PaymentResponse(BaseModel):
     status: StatusEnum
     request_id: UUID
 
+class ErrorResponse(BaseModel):
+    status: StatusEnum
+    request_id: UUID
+    message: str
+
+
 
 app = FastAPI()
-producer = KafkaProducer(bootstrap_servers=os.environ.get(
-    'KAFKA_BROKER'), value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+
+
+def get_kafka_producer():
+    try:
+        producer = KafkaProducer(bootstrap_servers=os.environ.get(
+            'KAFKA_BROKER'), value_serializer=lambda v: json.dumps(v).encode('utf-8'))
+        return producer
+    except Exception as e:
+        logger.error(f"Error while creating Kafka producer: {e}")
+        raise HTTPException(
+            status_code=503, detail="Unable to process payment at this time")
 
 
 def get_api_key(
@@ -41,6 +56,7 @@ def get_api_key(
     if api_key != os.environ.get("API_KEY"):
         raise HTTPException(status_code=400, detail="Invalid API Key")
     return api_key
+
 
 def convert_payment_to_dict(payment: Payment, request_id: UUID):
     try:
@@ -51,22 +67,29 @@ def convert_payment_to_dict(payment: Payment, request_id: UUID):
         logger.error(f"Error while converting payment to dict: {e}")
         raise e
 
+
 def send_payment_to_kafka(payment_dict: dict):
     try:
+        producer = get_kafka_producer()
         producer.send('payment_topic', payment_dict)
     except Exception as e:
         logger.error(f"Error while sending payment to Kafka: {e}")
-        raise e
+        raise HTTPException(
+            status_code=503, detail="Unable to process payment at this time")
 
 
 @app.post("/payment", response_model=PaymentResponse)
 async def process_payment(payment: Payment, api_key: str = Depends(get_api_key)):
-    request_id = str(uuid4())
+    try:
+        request_id = str(uuid4())
 
-    logger.info(
-        f"Processing payment: {payment.model_dump_json()}, Request ID: {request_id}")
+        logger.info(
+            f"Processing payment: {payment.model_dump_json()}, Request ID: {request_id}")
 
-    payment_dict = convert_payment_to_dict(payment, request_id)
-    send_payment_to_kafka(payment_dict)
+        payment_dict = convert_payment_to_dict(payment, request_id)
+        send_payment_to_kafka(payment_dict)
 
-    return {"status": StatusEnum.processing, "request_id": request_id}
+
+        return PaymentResponse(status=StatusEnum.processing, request_id=request_id)
+    except HTTPException as e:
+        return ErrorResponse(status=StatusEnum.failure, request_id=request_id, message=str(e.detail))
