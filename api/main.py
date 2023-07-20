@@ -42,6 +42,22 @@ def get_api_key(
         raise HTTPException(status_code=400, detail="Invalid API Key")
     return api_key
 
+def convert_payment_to_dict(payment: Payment, request_id: UUID):
+    try:
+        payment_dict = payment.model_dump(by_alias=True)
+        payment_dict['request_id'] = str(request_id)
+        return payment_dict
+    except Exception as e:
+        logger.error(f"Error while converting payment to dict: {e}")
+        raise e
+
+def send_payment_to_kafka(payment_dict: dict):
+    try:
+        producer.send('payment_topic', payment_dict)
+    except Exception as e:
+        logger.error(f"Error while sending payment to Kafka: {e}")
+        raise e
+
 
 @app.post("/payment", response_model=PaymentResponse)
 async def process_payment(payment: Payment, api_key: str = Depends(get_api_key)):
@@ -50,11 +66,7 @@ async def process_payment(payment: Payment, api_key: str = Depends(get_api_key))
     logger.info(
         f"Processing payment: {payment.model_dump_json()}, Request ID: {request_id}")
 
-    # Convert the payment object to a dict and then to a JSON string
-    payment_dict = payment.dict(by_alias=True)
-    payment_dict['request_id'] = str(request_id)
-
-    # Send the payment to Kafka for processing
-    producer.send('payment_topic', payment_dict)
+    payment_dict = convert_payment_to_dict(payment, request_id)
+    send_payment_to_kafka(payment_dict)
 
     return {"status": StatusEnum.processing, "request_id": request_id}
