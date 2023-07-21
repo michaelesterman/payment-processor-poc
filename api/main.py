@@ -1,62 +1,16 @@
-import json
-import os
 import logging
-from typing import Optional
-from uuid import UUID, uuid4
-from enum import Enum
+from uuid import uuid4
 from fastapi import FastAPI, status, Depends, HTTPException, Header, Response
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-from kafka import KafkaProducer
 from services.kafka_service import send_payment_to_kafka
+from services.auth_service import get_api_key
+from enums.status_enum import StatusEnum
+from models.payment import Payment, PaymentResponse, convert_payment_to_dict
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-class Payment(BaseModel):
-    amount: float = Field(..., gt=0)
-    currency: str
-    userId: str = Field(..., alias='userId')
-    payeeId: str = Field(..., alias='payeeId')
-    paymentMethodId: str = Field(..., alias='paymentMethodId')
-
-
-class StatusEnum(str, Enum):
-    processing = "processing"
-    success = "success"
-    failure = "failure"
-
-
-class PaymentResponse(BaseModel):
-    status: StatusEnum
-    request_id: str
-    message: Optional[str] = None
-
-
-class ErrorResponse(BaseModel):
-    status: StatusEnum
-    request_id: str
-    message: str
-
-
 app = FastAPI()
-
-def get_api_key(
-    api_key: str = Header(None),
-):
-    if api_key != os.environ.get("API_KEY"):
-        raise HTTPException(status_code=400, detail="Invalid API Key")
-    return api_key
-
-
-def convert_payment_to_dict(payment: Payment, request_id: UUID):
-    try:
-        payment_dict = payment.model_dump(by_alias=True)
-        payment_dict['request_id'] = str(request_id)
-        return payment_dict
-    except Exception as e:
-        raise Exception("Error while converting payment to dict")
 
 
 @app.post("/payment")
@@ -70,7 +24,7 @@ async def process_payment(payment: Payment, api_key: str = Depends(get_api_key))
         payment_dict = convert_payment_to_dict(payment, request_id)
         send_payment_to_kafka(payment_dict)
 
-        return JSONResponse(status_code=200, content=PaymentResponse(status=StatusEnum.processing, request_id=request_id))
+        return JSONResponse(status_code=200, content=PaymentResponse(status=StatusEnum.processing, request_id=request_id).model_dump())
     except Exception as e:
         logger.error(f"Unexpected error while processing payment: {str(e)}")
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=PaymentResponse(status=StatusEnum.failure, request_id=request_id, message="Unexpected error while processing payment").model_dump())
