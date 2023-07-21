@@ -1,9 +1,11 @@
 import json
 import os
 import logging
+from typing import Optional
 from uuid import UUID, uuid4
 from enum import Enum
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI, Depends, HTTPException, Header, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from kafka import KafkaProducer
 
@@ -27,11 +29,12 @@ class StatusEnum(str, Enum):
 
 class PaymentResponse(BaseModel):
     status: StatusEnum
-    request_id: UUID
+    request_id: str
+    message: Optional[str] = None
 
 class ErrorResponse(BaseModel):
     status: StatusEnum
-    request_id: UUID
+    request_id: str
     message: str
 
 
@@ -45,9 +48,7 @@ def get_kafka_producer():
             'KAFKA_BROKER'), value_serializer=lambda v: json.dumps(v).encode('utf-8'))
         return producer
     except Exception as e:
-        logger.error(f"Error while creating Kafka producer: {e}")
-        raise HTTPException(
-            status_code=503, detail="Unable to process payment at this time")
+        raise Exception(f"Error while creating Kafka producer: {e}")
 
 
 def get_api_key(
@@ -64,8 +65,7 @@ def convert_payment_to_dict(payment: Payment, request_id: UUID):
         payment_dict['request_id'] = str(request_id)
         return payment_dict
     except Exception as e:
-        logger.error(f"Error while converting payment to dict: {e}")
-        raise e
+        raise Exception("Error while converting payment to dict")
 
 
 def send_payment_to_kafka(payment_dict: dict):
@@ -73,12 +73,10 @@ def send_payment_to_kafka(payment_dict: dict):
         producer = get_kafka_producer()
         producer.send('payment_topic', payment_dict)
     except Exception as e:
-        logger.error(f"Error while sending payment to Kafka: {e}")
-        raise HTTPException(
-            status_code=503, detail="Unable to process payment at this time")
+        raise Exception(f"Error while sending payment to Kafka: {e}")
 
 
-@app.post("/payment", response_model=PaymentResponse)
+@app.post("/payment")
 async def process_payment(payment: Payment, api_key: str = Depends(get_api_key)):
     try:
         request_id = str(uuid4())
@@ -90,6 +88,7 @@ async def process_payment(payment: Payment, api_key: str = Depends(get_api_key))
         send_payment_to_kafka(payment_dict)
 
 
-        return PaymentResponse(status=StatusEnum.processing, request_id=request_id)
-    except HTTPException as e:
-        return ErrorResponse(status=StatusEnum.failure, request_id=request_id, message=str(e.detail))
+        return JSONResponse(status_code=200, content=PaymentResponse(status=StatusEnum.processing, request_id=request_id))
+    except Exception as e:
+        logger.error(f"Unexpected error while processing payment: {str(e)}")
+        return JSONResponse(status_code=500, content=PaymentResponse(status=StatusEnum.failure, request_id=request_id, message="Unexpected error while processing payment").model_dump())
