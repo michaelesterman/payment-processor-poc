@@ -8,6 +8,7 @@ from fastapi import FastAPI, status, Depends, HTTPException, Header, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from kafka import KafkaProducer
+from services.kafka_service import send_payment_to_kafka
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,16 +42,6 @@ class ErrorResponse(BaseModel):
 
 app = FastAPI()
 
-
-def get_kafka_producer():
-    try:
-        producer = KafkaProducer(bootstrap_servers=os.environ.get(
-            'KAFKA_BROKER'), value_serializer=lambda v: json.dumps(v).encode('utf-8'))
-        return producer
-    except Exception as e:
-        raise Exception(f"Error while creating Kafka producer: {e}")
-
-
 def get_api_key(
     api_key: str = Header(None),
 ):
@@ -66,14 +57,6 @@ def convert_payment_to_dict(payment: Payment, request_id: UUID):
         return payment_dict
     except Exception as e:
         raise Exception("Error while converting payment to dict")
-
-
-def send_payment_to_kafka(payment_dict: dict):
-    try:
-        producer = get_kafka_producer()
-        producer.send('payment_topic', payment_dict)
-    except Exception as e:
-        raise Exception(f"Error while sending payment to Kafka: {e}")
 
 
 @app.post("/payment")
