@@ -9,12 +9,27 @@ services:
     environment:
       - API_KEY=MY_API_KEY
       - KAFKA_BROKER=kafka:9092
+    restart: unless-stopped
+    container_name: api
+
+  risk_engine:
+    build: ./src/risk_engine
+    volumes:
+      - ./src/risk_engine:/app
+    environment:
+      - KAFKA_BROKER=kafka:9092
+    restart: unless-stopped
+    container_name: risk_engine
+
   zookeeper:
     image: 'bitnami/zookeeper:latest'
     ports:
       - '2181:2181'
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
+    restart: unless-stopped
+    container_name: zookeeper
+
   kafka:
     image: 'bitnami/kafka:latest'
     ports:
@@ -24,3 +39,5 @@ services:
       - ALLOW_PLAINTEXT_LISTENER=yes
     depends_on:
       - zookeeper
+    restart: unless-stopped
+    container_name: kafka
