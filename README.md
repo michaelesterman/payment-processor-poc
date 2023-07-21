@@ -32,23 +32,29 @@ docker exec -it payment-processor-poc-kafka-1 kafka-topics.sh --list --bootstrap
 ## Peeking messages
 
 ```sh
-docker exec -it payment-processor-poc-kafka-1 kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic payment_topic --from-beginning
+docker exec -it kafka kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic payment_topic --from-beginning
 ```
 
 # Development
+
+## Logs
+
+docker compose logs -f api
+docker compose logs -f risk_engine
+
 
 ## Making changes to the container
 
 ### Rebuild the Docker image
 
 ```sh
-docker-compose build api
+docker compose build api
 ```
 
 ### Restart the service
 
 ```sh
-docker-compose up -d api
+docker compose up -d api
 ```
 
 ## Running the API locally
