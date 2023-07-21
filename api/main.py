@@ -4,7 +4,7 @@ import logging
 from typing import Optional
 from uuid import UUID, uuid4
 from enum import Enum
-from fastapi import FastAPI, Depends, HTTPException, Header, Response
+from fastapi import FastAPI, status, Depends, HTTPException, Header, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from kafka import KafkaProducer
@@ -32,11 +32,11 @@ class PaymentResponse(BaseModel):
     request_id: str
     message: Optional[str] = None
 
+
 class ErrorResponse(BaseModel):
     status: StatusEnum
     request_id: str
     message: str
-
 
 
 app = FastAPI()
@@ -87,8 +87,7 @@ async def process_payment(payment: Payment, api_key: str = Depends(get_api_key))
         payment_dict = convert_payment_to_dict(payment, request_id)
         send_payment_to_kafka(payment_dict)
 
-
         return JSONResponse(status_code=200, content=PaymentResponse(status=StatusEnum.processing, request_id=request_id))
     except Exception as e:
         logger.error(f"Unexpected error while processing payment: {str(e)}")
-        return JSONResponse(status_code=500, content=PaymentResponse(status=StatusEnum.failure, request_id=request_id, message="Unexpected error while processing payment").model_dump())
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=PaymentResponse(status=StatusEnum.failure, request_id=request_id, message="Unexpected error while processing payment").model_dump())
