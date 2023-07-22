@@ -5,9 +5,9 @@ from models.risk import RiskAssessment
 class Payment(BaseModel):
     amount: float = Field(..., gt=0)
     currency: str
-    userId: str = Field(..., alias='userId')
-    payeeId: str = Field(..., alias='payeeId')
-    paymentMethodId: str = Field(..., alias='paymentMethodId')
+    user_id: str = Field(..., alias='user_id')
+    payee_id: str = Field(..., alias='payee_id')
+    payment_method_id: str = Field(..., alias='payment_method_id')
     payment_id: str = Field(..., alias='payment_id')
 
 class PaymentAssessed(BaseModel):
