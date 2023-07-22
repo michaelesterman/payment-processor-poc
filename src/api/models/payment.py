@@ -1,5 +1,5 @@
 from typing import Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 
 from enums.status_enum import StatusEnum
@@ -8,9 +8,10 @@ from enums.status_enum import StatusEnum
 class Payment(BaseModel):
     amount: float = Field(..., gt=0)
     currency: str
-    userId: str = Field(..., alias='userId')
-    payeeId: str = Field(..., alias='payeeId')
-    paymentMethodId: str = Field(..., alias='paymentMethodId')
+    user_id: str = Field(..., alias='userId')
+    payee_id: str = Field(..., alias='payeeId')
+    payment_method_id: str = Field(..., alias='paymentMethodId')
+    payment_id: str = Field(default_factory=lambda: str(uuid4()))
 
 class PaymentResponse(BaseModel):
     status: StatusEnum
