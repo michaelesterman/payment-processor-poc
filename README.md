@@ -95,3 +95,17 @@ The database structure for storing these data can be split into two tables: `pay
 - `verdict` (`ENUM`): Verdict of the risk assessment (Accepted or Declined).
 
 The two tables are linked through a one-to-one relationship by the `payment_id` field.
+
+# Architecture
+
+**API**: The API component will be deployed on Amazon Elastic Container Service (ECS). It'll be containerized for flexibility and can scale according to demand.
+
+**Risk Engine**: Similar to the API, the Risk Engine will also be hosted on ECS, ensuring a scalable and manageable service.
+
+**Database**: Amazon Relational Database Service (RDS) will be used for database needs. It's a managed relational database service that provides automatic backups, patch management, and other functionalities.
+
+**Future Transition**: Over time, the plan plan to migrate our services to a serverless model. The API and Risk Engine will be moved to AWS Lambda for computing and Amazon API Gateway for managing, routing, and securing the APIs.
+
+**Managed Kafka**: For message queuing, Amazon Managed Streaming for Kafka (MSK) will be used. It's a fully managed, highly available, and secure Apache Kafka service.
+
+This architecture is designed to support high availability, automatic scaling, and cost-effectiveness, which makes it suitable for handling millions of concurrent requests.
