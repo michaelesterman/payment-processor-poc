@@ -27,7 +27,7 @@ curl --location 'http://127.0.0.1:8000/payment' \
 ### Listing topics
 
 ```sh
-docker exec -it kafka kafka-topics.sh --list --bootstrap-server localhost:9092
+docker exec -it payment-processor-poc-kafka-1 kafka-topics.sh --list --bootstrap-server localhost:9092
 ```
 
 ### Peeking messages
@@ -35,13 +35,19 @@ docker exec -it kafka kafka-topics.sh --list --bootstrap-server localhost:9092
 #### Accepted:
 
 ```sh
-docker exec -it kafka kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic payment_accepted_topic --from-beginning
+docker exec -it payment-processor-poc-kafka-1 kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic payment_accepted_topic --from-beginning
 ```
 
 #### Declined:
 
 ```sh
-docker exec -it kafka kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic payment_accepted_topic --from-beginning
+docker exec -it payment-processor-poc-kafka-1 kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic payment_accepted_topic --from-beginning
+```
+
+#### Queued:
+
+```sh
+docker exec -it payment-processor-poc-kafka-1 kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic payment_topic --from-beginning
 ```
 
 # Development
