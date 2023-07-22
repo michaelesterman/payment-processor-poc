@@ -14,13 +14,13 @@ class Payment(BaseModel):
 
 class PaymentResponse(BaseModel):
     status: StatusEnum
-    request_id: str
+    payment_id: str
     message: Optional[str] = None
 
-def convert_payment_to_dict(payment: Payment, request_id: UUID):
+def convert_payment_to_dict(payment: Payment, payment_id: UUID):
     try:
         payment_dict = payment.model_dump(by_alias=True)
-        payment_dict['request_id'] = str(request_id)
+        payment_dict['payment_id'] = str(payment_id)
         return payment_dict
     except Exception as e:
         raise Exception("Error while converting payment to dict")
