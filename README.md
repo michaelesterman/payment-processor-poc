@@ -65,3 +65,27 @@ docker compose build api
 ```sh
 docker compose up -d api
 ```
+
+# Database
+
+## Schema
+
+The database structure for storing these data can be split into two tables: `payments` and `risk_assessments`. Here is a simple suggestion:
+
+`payments` table:
+
+- `payment_id` (`UUID`): Primary key, unique identifier for each payment.
+- `amount` (`NUMERIC`): Amount of the payment.
+- `currency` (`CHAR(3)`): Currency of the payment.
+- `user_id` (`UUID`): Identifier of the user who made the payment.
+- `payee_id` (`UUID`): Identifier of the payee who receives the payment.
+- `payment_method_id` (`UUID`): Identifier of the payment method used.
+
+`risk_assessments` table:
+
+- `assessment_id` (`UUID`): Primary key, unique identifier for each risk assessment.
+- `payment_id` (`UUID`): Foreign key, links to the payment_id in the payments table.
+- `risk_level` (`DOUBLE PRECISION`): Risk level of the payment.
+- `verdict` (`ENUM`): Verdict of the risk assessment (Accepted or Declined).
+
+The two tables are linked through a one-to-one relationship by the `payment_id` field.
