@@ -8,6 +8,8 @@ docker compose up
 
 ## Testing
 
+### Sending a payment
+
 ```sh
 curl --location 'http://127.0.0.1:8000/payment' \
 --header 'API-KEY: MY-API-KEY' \
@@ -21,18 +23,25 @@ curl --location 'http://127.0.0.1:8000/payment' \
 }'
 ```
 
-# Kafka
 
-## Listing topics
+### Listing topics
 
 ```sh
-docker exec -it payment-processor-poc-kafka-1 kafka-topics.sh --list --bootstrap-server localhost:9092
+docker exec -it kafka kafka-topics.sh --list --bootstrap-server localhost:9092
 ```
 
-## Peeking messages
+### Peeking messages
+
+#### Accepted:
 
 ```sh
-docker exec -it kafka kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic payment_topic --from-beginning
+docker exec -it kafka kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic payment_accepted_topic --from-beginning
+```
+
+#### Declined:
+
+```sh
+docker exec -it kafka kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic payment_accepted_topic --from-beginning
 ```
 
 # Development
@@ -45,7 +54,7 @@ docker compose logs -f risk_engine
 
 ## Making changes to the container
 
-### Rebuild the Docker image
+### Rebuild specific Docker image
 
 ```sh
 docker compose build api
@@ -55,13 +64,4 @@ docker compose build api
 
 ```sh
 docker compose up -d api
-```
-
-## Running the API locally
-
-From `src/api`:
-
-
-```sh
-uvicorn main:app --reload
 ```
