@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from models.risk import RiskAssessment
 
 
 class Payment(BaseModel):
@@ -8,3 +9,8 @@ class Payment(BaseModel):
     payeeId: str = Field(..., alias='payeeId')
     paymentMethodId: str = Field(..., alias='paymentMethodId')
     payment_id: str = Field(..., alias='payment_id')
+
+class PaymentAssessed(BaseModel):
+     payment_request: Payment
+     risk_assessment: RiskAssessment
+
