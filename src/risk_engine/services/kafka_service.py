@@ -4,6 +4,9 @@ import time
 from kafka import KafkaConsumer, KafkaProducer
 from kafka.errors import NoBrokersAvailable
 
+from models.payment import PaymentAssessed
+
+
 
 def get_kafka_producer():
     try:
@@ -34,17 +37,10 @@ def get_kafka_consumer(topic: str):
             raise Exception(f"Error while creating Kafka consumer: {e}")
 
 
-def send_accepted_payment(payment_dict: dict):
+def send_payment_to_kafka(payment: PaymentAssessed, topic: str):
     try:
         producer = get_kafka_producer()
-        producer.send('payment_accepted_topic', payment_dict)
+        producer.send(topic, payment.model_dump())
     except Exception as e:
         raise Exception(f"Error while sending accepted payment to Kafka: {e}")
 
-
-def send_declined_payment(payment_dict: dict):
-    try:
-        producer = get_kafka_producer()
-        producer.send('payment_declined_topic', payment_dict)
-    except Exception as e:
-        raise Exception(f"Error while sending declined payment to Kafka: {e}")
